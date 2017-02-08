@@ -96,7 +96,6 @@
     (rum/mount (map-base geojson) base-div)))
 
 (defn load-json []
-  (js/console.log "working")
   (->> (http/get client/client "./data/NC/nc-wake-precincts.json")
     (p/map (fn [resp]
              (reset! topojson-data
