@@ -6,11 +6,7 @@
             [clojure.pprint :as pp]
             [clojure.data.json :as json]))
 
-
 (def precinct-results (atom {}))
-
-(defn update-results [year precinct results]
-  )
 
 (defn result-report [results]
   (try
@@ -27,14 +23,17 @@
                         (first $)
                         (:total-votes $))]
       (when (< 0 total-votes)
-        (- (float (/ dem-votes total-votes)) (float (/ rep-votes total-votes)))))
+        {:dem-votes dem-votes
+         :rep-votes rep-votes
+         :dem-percentage-lead (- (float (/ dem-votes total-votes))
+                                 (float (/ rep-votes total-votes)))}))
     (catch Exception ex
       (prn ex)
       (prn "-------->" results))))
 
 (defn load-nc-2012-file []
   (reset! precinct-results {})
-  (with-open [in-file (-> "NC/2012.txt"
+  (with-open [in-file (-> "data/NC/2012.txt"
                         (io/resource)
                         (io/file)
                         (io/reader))]
@@ -54,7 +53,7 @@
     nil))
 
 (defn load-nc-2016-file []
-  (with-open [in-file (-> "NC/2016.txt"
+  (with-open [in-file (-> "data/NC/2016.txt"
                         (io/resource)
                         (io/file)
                         (io/reader))]
@@ -76,8 +75,14 @@
             (update acc precinct assoc "2016" (result-report results))))))
     nil))
 
-(comment
+(defn make-results []
   (do
     (load-nc-2012-file)
     (load-nc-2016-file)
-    (pp/pprint @precinct-results)))
+    (->> @precinct-results
+      (json/write-str)
+      (spit "resources/data/NC/wake-precinct-results.json"))))
+
+(comment
+  (make-results)
+  )
