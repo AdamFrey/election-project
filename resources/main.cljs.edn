@@ -1,7 +1,5 @@
 {:require          [elections.core]
  :init-fns         [elections.core/init!]
- :optimizations    :none
- :source-map       true
  :compiler-options {:parallel-build true
                     :asset-path     "/main.out"
                     :foreign-libs [{:file "src"

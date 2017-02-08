@@ -1,16 +1,19 @@
 (ns elections.core
-  (:require [cljsjs.react-google-maps]
-            [cljsjs.react-leaflet]
-            [cljsjs.topojson]
+  (:require cljsjs.topojson
             [clojure.string :as str]
-            [elections.color :as color]
+            ;; [elections.color :as color]
             [goog.dom :as gdom]
             [goog.object :as obj]
             [httpurr.client :as http]
             [httpurr.client.xhr :as client]
             [oops.core :as o]
             [promesa.core :as p]
-            [rum.core :as rum]))
+            [rum.core :as rum])
+  (:require-macros [adzerk.env :as env]))
+
+(env/def
+  ASSET_HOST nil
+  GOOGLE_MAPIS_API_KEY "AIzaSyCRTgKAeU6LuBJRYKWWi8O6uVCsexO3Jm8")
 
 (enable-console-print!)
 
@@ -26,8 +29,8 @@
 
 (defn precinct-style [precinct]
   (let [results (get @results-data precinct)
-        el-2012 (get results "2012")
-        el-2016 (get results "2016")]
+        el-2012 (get-in results ["2012" "dem-percentage-lead"])
+        el-2016 (get-in results ["2016" "dem-percentage-lead"])]
     (if (not (and el-2012 el-2016))
       #js {:color "gray"}
 
@@ -48,19 +51,18 @@
     (js/ReactDOM.findDOMNode)))
 
 (defn info-window-content [precinct]
-  (let [results (get @results-data precinct)
-        res-2012 (-> results
-                   (get "2012")
-                   (* 100)
-                   (.toFixed 2))
-        res-2016 (-> results
-                   (get "2016")
-                   (* 100)
-                   (.toFixed 2))]
+  (let [results    (get @results-data precinct)
+        percentage (fn [n] (-> n (* 100) (.toFixed 2) (str "%")))
+        res-2012   (-> results
+                     (get "2012")
+                     (update "dem-percentage-lead" percentage))
+        res-2016   (-> results
+                     (get "2016")
+                     (update "dem-percentage-lead" percentage))]
     (str
       "<p>" precinct "</p>"
-      "<p>2012 - " res-2012 "%</p>"
-      "<p>2016 - " res-2016 "%</p>")))
+      "<p>2012: " res-2012 "</p>"
+      "<p>2016: " res-2016 "</p>")))
 
 (defn click-precinct [event map]
   (let [feature   (o/oget event "feature")
@@ -94,11 +96,12 @@
     (rum/mount (map-base geojson) base-div)))
 
 (defn load-json []
-  (->> (http/get client/client "data/NC/nc-wake-precincts.json")
+  (js/console.log "working")
+  (->> (http/get client/client "./data/NC/nc-wake-precincts.json")
     (p/map (fn [resp]
              (reset! topojson-data
                (-> resp :body js/JSON.parse))
-             (http/get client/client "data/NC/wake-results.json")))
+             (http/get client/client "./data/NC/wake-precinct-results.json")))
     (p/map (fn [resp]
              (reset! results-data
                (-> resp :body js/JSON.parse js->clj))
